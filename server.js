@@ -144,6 +144,40 @@ app.put("/api/change-password", async (req, res) => {
   }
 });
 
+// FORGOT PASSWORD / RESET PASSWORD
+app.put("/api/reset-password", async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Email not found",
+      });
+    }
+
+    if (newPassword.length < 2 || newPassword.length > 6) {
+      return res.status(400).json({
+        message: "Password must be between 2 and 6 characters",
+      });
+    }
+
+    user.password = newPassword;
+
+    await user.save();
+
+    res.json({
+      message: "Password reset successfully",
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+});
+
 
 // ADD income
 app.post("/api/incomes", async (req, res) => {
