@@ -110,6 +110,40 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+// CHANGE PASSWORD
+app.put("/api/change-password", async (req, res) => {
+  try {
+    const { email, currentPassword, newPassword } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    if (user.password !== currentPassword) {
+      return res.status(401).json({
+        message: "Current password is incorrect",
+      });
+    }
+
+    user.password = newPassword;
+
+    await user.save();
+
+    res.json({
+      message: "Password changed successfully",
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+});
+
 
 // ADD income
 app.post("/api/incomes", async (req, res) => {
