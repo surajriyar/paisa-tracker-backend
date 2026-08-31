@@ -1,39 +1,64 @@
 require("dotenv").config();
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+
 const Income = require("./models/Income");
-const User = require("./models/user");
-
-
 const Expense = require("./models/Expense");
+const User = require("./models/user");
 
 const app = express();
 
 
+// =========================
+// MIDDLEWARE
+// =========================
+
 app.use(cors());
 app.use(express.json());
 
+
+// =========================
+// MONGODB CONNECTION
+// =========================
+
 const MONGO_URI = process.env.MONGO_URI;
+
 mongoose
   .connect(MONGO_URI)
   .then(() => {
     console.log("MongoDB connected successfully");
 
     app.listen(process.env.PORT || 5000, () => {
-  console.log("Server running on port 5000");
-});
+      console.log(
+        `Server running on port ${process.env.PORT || 5000}`
+      );
+    });
   })
   .catch((error) => {
-    console.log("MongoDB connection failed:", error.message);
+    console.log(
+      "MongoDB connection failed:",
+      error.message
+    );
   });
 
-  // REGISTER USER
+
+// =====================================================
+// REGISTER USER
+// =====================================================
+
 app.post("/api/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const {
+      name,
+      email,
+      password,
+    } = req.body;
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({
+      email,
+    });
 
     if (existingUser) {
       return res.status(400).json({
@@ -51,6 +76,7 @@ app.post("/api/register", async (req, res) => {
 
     res.status(201).json({
       message: "User registered successfully",
+
       user: {
         id: savedUser._id,
         name: savedUser.name,
@@ -65,27 +91,21 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-  // GET all incomes
-app.get("/api/incomes", async (req, res) => {
-  try {
-    const { userId } = req.query;
 
-    const incomes = await Income.find({ userId }).sort({
-      createdAt: -1,
-    });
-
-    res.json(incomes);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
+// =====================================================
 // LOGIN USER
+// =====================================================
+
 app.post("/api/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const {
+      email,
+      password,
+    } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      email,
+    });
 
     if (!user) {
       return res.status(401).json({
@@ -101,6 +121,7 @@ app.post("/api/login", async (req, res) => {
 
     res.json({
       message: "Login successful",
+
       user: {
         id: user._id,
         name: user.name,
@@ -115,12 +136,22 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+
+// =====================================================
 // CHANGE PASSWORD
+// =====================================================
+
 app.put("/api/change-password", async (req, res) => {
   try {
-    const { email, currentPassword, newPassword } = req.body;
+    const {
+      email,
+      currentPassword,
+      newPassword,
+    } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      email,
+    });
 
     if (!user) {
       return res.status(404).json({
@@ -149,12 +180,21 @@ app.put("/api/change-password", async (req, res) => {
   }
 });
 
-// FORGOT PASSWORD / RESET PASSWORD
+
+// =====================================================
+// RESET PASSWORD
+// =====================================================
+
 app.put("/api/reset-password", async (req, res) => {
   try {
-    const { email, newPassword } = req.body;
+    const {
+      email,
+      newPassword,
+    } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      email,
+    });
 
     if (!user) {
       return res.status(404).json({
@@ -162,9 +202,13 @@ app.put("/api/reset-password", async (req, res) => {
       });
     }
 
-    if (newPassword.length < 2 || newPassword.length > 6) {
+    if (
+      newPassword.length < 2 ||
+      newPassword.length > 6
+    ) {
       return res.status(400).json({
-        message: "Password must be between 2 and 6 characters",
+        message:
+          "Password must be between 2 and 6 characters",
       });
     }
 
@@ -184,10 +228,62 @@ app.put("/api/reset-password", async (req, res) => {
 });
 
 
-// ADD income
+// =====================================================
+// INCOME
+// =====================================================
+
+
+// GET USER-WISE INCOMES
+
+app.get("/api/incomes", async (req, res) => {
+  try {
+
+    const {
+      userId,
+    } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({
+        message: "User ID is required",
+      });
+    }
+
+    const incomes = await Income.find({
+      userId: userId,
+    }).sort({
+      createdAt: -1,
+    });
+
+    res.json(incomes);
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: error.message,
+    });
+
+  }
+});
+
+
+// ADD INCOME
+
 app.post("/api/incomes", async (req, res) => {
   try {
-    const { userId, title, amount, category, date } = req.body;
+
+    const {
+      userId,
+      title,
+      amount,
+      category,
+      date,
+    } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        message: "User ID is required",
+      });
+    }
 
     const income = new Income({
       userId,
@@ -197,33 +293,58 @@ app.post("/api/incomes", async (req, res) => {
       date,
     });
 
-    const savedIncome = await income.save();
+    const savedIncome =
+      await income.save();
 
-    res.status(201).json(savedIncome);
+    res.status(201).json(
+      savedIncome
+    );
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+
+    res.status(500).json({
+      message: error.message,
+    });
+
   }
 });
 
 
-// UPDATE income
+// UPDATE INCOME
+
 app.put("/api/incomes/:id", async (req, res) => {
   try {
-    const { userId, title, amount, category, date } = req.body;
 
-    const updatedIncome = await Income.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        userId: userId,
-      },
-      {
-        title,
-        amount,
-        category,
-        date,
-      },
-      { new: true }
-    );
+    const {
+      userId,
+      title,
+      amount,
+      category,
+      date,
+    } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        message: "User ID is required",
+      });
+    }
+
+    const updatedIncome =
+      await Income.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          userId: userId,
+        },
+        {
+          title,
+          amount,
+          category,
+          date,
+        },
+        {
+          new: true,
+        }
+      );
 
     if (!updatedIncome) {
       return res.status(404).json({
@@ -231,22 +352,40 @@ app.put("/api/incomes/:id", async (req, res) => {
       });
     }
 
-    res.json(updatedIncome);
+    res.json(
+      updatedIncome
+    );
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+
+    res.status(500).json({
+      message: error.message,
+    });
+
   }
 });
 
 
-// DELETE income
+// DELETE INCOME
+
 app.delete("/api/incomes/:id", async (req, res) => {
   try {
-    const { userId } = req.query;
 
-    const deletedIncome = await Income.findOneAndDelete({
-      _id: req.params.id,
-      userId: userId,
-    });
+    const {
+      userId,
+    } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({
+        message: "User ID is required",
+      });
+    }
+
+    const deletedIncome =
+      await Income.findOneAndDelete({
+        _id: req.params.id,
+        userId: userId,
+      });
 
     if (!deletedIncome) {
       return res.status(404).json({
@@ -255,21 +394,33 @@ app.delete("/api/incomes/:id", async (req, res) => {
     }
 
     res.json({
-      message: "Income deleted successfully",
+      message:
+        "Income deleted successfully",
     });
+
   } catch (error) {
+
     res.status(500).json({
       message: error.message,
     });
+
   }
 });
 
 
-// GET all expenses
-// GET expenses for logged-in user
+// =====================================================
+// EXPENSE
+// =====================================================
+
+
+// GET USER-WISE EXPENSES
+
 app.get("/api/expenses", async (req, res) => {
   try {
-    const { userId } = req.query;
+
+    const {
+      userId,
+    } = req.query;
 
     if (!userId) {
       return res.status(400).json({
@@ -277,23 +428,32 @@ app.get("/api/expenses", async (req, res) => {
       });
     }
 
-    const expenses = await Expense.find({
-      userId: userId,
-    }).sort({ createdAt: -1 });
+    const expenses =
+      await Expense.find({
+        userId: userId,
+      }).sort({
+        createdAt: -1,
+      });
 
-    res.json(expenses);
+    res.json(
+      expenses
+    );
+
   } catch (error) {
+
     res.status(500).json({
       message: error.message,
     });
+
   }
 });
 
 
-// ADD expense
-// ADD expense
+// ADD EXPENSE
+
 app.post("/api/expenses", async (req, res) => {
   try {
+
     const {
       userId,
       title,
@@ -308,50 +468,67 @@ app.post("/api/expenses", async (req, res) => {
       });
     }
 
-    const expense = new Expense({
-      userId,
-      title,
-      amount,
-      category,
-      date,
-    });
-
-    const savedExpense = await expense.save();
-
-    res.status(201).json(savedExpense);
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-});
-
-
-// UPDATE expense
-// UPDATE expense
-app.put("/api/expenses/:id", async (req, res) => {
-  try {
-    const {
-      userId,
-      title,
-      amount,
-      category,
-      date,
-    } = req.body;
-
-    const updatedExpense = await Expense.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        userId: userId,
-      },
-      {
+    const expense =
+      new Expense({
+        userId,
         title,
         amount,
         category,
         date,
-      },
-      { new: true }
+      });
+
+    const savedExpense =
+      await expense.save();
+
+    res.status(201).json(
+      savedExpense
     );
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: error.message,
+    });
+
+  }
+});
+
+
+// UPDATE EXPENSE
+
+app.put("/api/expenses/:id", async (req, res) => {
+  try {
+
+    const {
+      userId,
+      title,
+      amount,
+      category,
+      date,
+    } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        message: "User ID is required",
+      });
+    }
+
+    const updatedExpense =
+      await Expense.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          userId: userId,
+        },
+        {
+          title,
+          amount,
+          category,
+          date,
+        },
+        {
+          new: true,
+        }
+      );
 
     if (!updatedExpense) {
       return res.status(404).json({
@@ -359,19 +536,28 @@ app.put("/api/expenses/:id", async (req, res) => {
       });
     }
 
-    res.json(updatedExpense);
+    res.json(
+      updatedExpense
+    );
+
   } catch (error) {
+
     res.status(500).json({
       message: error.message,
     });
+
   }
 });
 
-// DELETE expense
-// DELETE expense
+
+// DELETE EXPENSE
+
 app.delete("/api/expenses/:id", async (req, res) => {
   try {
-    const { userId } = req.query;
+
+    const {
+      userId,
+    } = req.query;
 
     if (!userId) {
       return res.status(400).json({
@@ -379,10 +565,11 @@ app.delete("/api/expenses/:id", async (req, res) => {
       });
     }
 
-    const deletedExpense = await Expense.findOneAndDelete({
-      _id: req.params.id,
-      userId: userId,
-    });
+    const deletedExpense =
+      await Expense.findOneAndDelete({
+        _id: req.params.id,
+        userId: userId,
+      });
 
     if (!deletedExpense) {
       return res.status(404).json({
@@ -391,11 +578,15 @@ app.delete("/api/expenses/:id", async (req, res) => {
     }
 
     res.json({
-      message: "Expense deleted successfully",
+      message:
+        "Expense deleted successfully",
     });
+
   } catch (error) {
+
     res.status(500).json({
       message: error.message,
     });
+
   }
 });
