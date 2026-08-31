@@ -68,7 +68,12 @@ app.post("/api/register", async (req, res) => {
   // GET all incomes
 app.get("/api/incomes", async (req, res) => {
   try {
-    const incomes = await Income.find().sort({ createdAt: -1 });
+    const { userId } = req.query;
+
+    const incomes = await Income.find({ userId }).sort({
+      createdAt: -1,
+    });
+
     res.json(incomes);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -182,7 +187,16 @@ app.put("/api/reset-password", async (req, res) => {
 // ADD income
 app.post("/api/incomes", async (req, res) => {
   try {
-    const income = new Income(req.body);
+    const { userId, title, amount, category, date } = req.body;
+
+    const income = new Income({
+      userId,
+      title,
+      amount,
+      category,
+      date,
+    });
+
     const savedIncome = await income.save();
 
     res.status(201).json(savedIncome);
@@ -195,11 +209,27 @@ app.post("/api/incomes", async (req, res) => {
 // UPDATE income
 app.put("/api/incomes/:id", async (req, res) => {
   try {
-    const updatedIncome = await Income.findByIdAndUpdate(
-      req.params.id,
-      req.body,
+    const { userId, title, amount, category, date } = req.body;
+
+    const updatedIncome = await Income.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        userId: userId,
+      },
+      {
+        title,
+        amount,
+        category,
+        date,
+      },
       { new: true }
     );
+
+    if (!updatedIncome) {
+      return res.status(404).json({
+        message: "Income not found",
+      });
+    }
 
     res.json(updatedIncome);
   } catch (error) {
@@ -211,49 +241,123 @@ app.put("/api/incomes/:id", async (req, res) => {
 // DELETE income
 app.delete("/api/incomes/:id", async (req, res) => {
   try {
-    await Income.findByIdAndDelete(req.params.id);
+    const { userId } = req.query;
+
+    const deletedIncome = await Income.findOneAndDelete({
+      _id: req.params.id,
+      userId: userId,
+    });
+
+    if (!deletedIncome) {
+      return res.status(404).json({
+        message: "Income not found",
+      });
+    }
 
     res.json({
       message: "Income deleted successfully",
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message,
+    });
   }
 });
 
 
 // GET all expenses
+// GET expenses for logged-in user
 app.get("/api/expenses", async (req, res) => {
   try {
-    const expenses = await Expense.find().sort({ createdAt: -1 });
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({
+        message: "User ID is required",
+      });
+    }
+
+    const expenses = await Expense.find({
+      userId: userId,
+    }).sort({ createdAt: -1 });
+
     res.json(expenses);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message,
+    });
   }
 });
 
 
 // ADD expense
+// ADD expense
 app.post("/api/expenses", async (req, res) => {
   try {
-    const expense = new Expense(req.body);
+    const {
+      userId,
+      title,
+      amount,
+      category,
+      date,
+    } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        message: "User ID is required",
+      });
+    }
+
+    const expense = new Expense({
+      userId,
+      title,
+      amount,
+      category,
+      date,
+    });
+
     const savedExpense = await expense.save();
 
     res.status(201).json(savedExpense);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message,
+    });
   }
 });
 
 
 // UPDATE expense
+// UPDATE expense
 app.put("/api/expenses/:id", async (req, res) => {
   try {
-    const updatedExpense = await Expense.findByIdAndUpdate(
-      req.params.id,
-      req.body,
+    const {
+      userId,
+      title,
+      amount,
+      category,
+      date,
+    } = req.body;
+
+    const updatedExpense = await Expense.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        userId: userId,
+      },
+      {
+        title,
+        amount,
+        category,
+        date,
+      },
       { new: true }
     );
+
+    if (!updatedExpense) {
+      return res.status(404).json({
+        message: "Expense not found",
+      });
+    }
 
     res.json(updatedExpense);
   } catch (error) {
@@ -263,11 +367,28 @@ app.put("/api/expenses/:id", async (req, res) => {
   }
 });
 
-
+// DELETE expense
 // DELETE expense
 app.delete("/api/expenses/:id", async (req, res) => {
   try {
-    await Expense.findByIdAndDelete(req.params.id);
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({
+        message: "User ID is required",
+      });
+    }
+
+    const deletedExpense = await Expense.findOneAndDelete({
+      _id: req.params.id,
+      userId: userId,
+    });
+
+    if (!deletedExpense) {
+      return res.status(404).json({
+        message: "Expense not found",
+      });
+    }
 
     res.json({
       message: "Expense deleted successfully",
